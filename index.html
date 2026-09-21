@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Context Studio — from scattered knowledge to trusted context</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070b;--panel:#0f1017;--panel2:#151723;
+  --ink:#f4f4f6;--ink2:#a9adba;--ink3:#6b7080;
+  --ac:#35d6a7;--ac2:#8ff0d4;
+  --rule:rgba(255,255,255,.1);
+  --font:"IBM Plex Sans",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--font);
+  -webkit-font-smoothing:antialiased;min-height:100vh;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  display:flex;flex-direction:column;
+}
+a{color:inherit;text-decoration:none}
+button,select{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--ac2);outline-offset:3px}
+
+.top{
+  position:sticky;top:0;z-index:10;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:14px clamp(20px,4vw,56px);padding-top:calc(14px + env(safe-area-inset-top,0px));
+  border-bottom:1px solid var(--rule);font-size:13px;color:var(--ink2);
+  background:rgba(7,7,11,.9);backdrop-filter:blur(6px);
+}
+.top .tag{border:1px solid var(--rule);padding:3px 9px;font-size:12px;color:var(--ac2)}
+.top .sep{flex:1}
+.top .meta{font-size:12px;color:var(--ink3)}
+
+main{flex:1;width:100%;max-width:860px;margin:0 auto;padding:clamp(28px,5vw,64px) clamp(20px,4vw,56px) 40px}
+
+.kicker{font-family:var(--mono);font-size:13px;color:var(--ac2);margin-bottom:14px}
+h1{font-size:clamp(28px,4vw,46px);font-weight:600;letter-spacing:-.02em;line-height:1.1;max-width:20ch}
+.lede{margin-top:16px;font-size:clamp(15px,1.3vw,17px);line-height:1.6;color:var(--ink2);font-weight:300;max-width:62ch}
+.persona{margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--ink3)}
+
+/* player */
+.player{
+  margin-top:32px;border:1px solid var(--rule);background:var(--panel);padding:14px 16px;
+}
+.player .row{display:flex;align-items:center;gap:16px}
+.player button.play{
+  flex:none;width:40px;height:40px;border:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:center;background:var(--panel2);
+  transition:border-color .2s;
+}
+.player button.play:hover{border-color:var(--ac)}
+.player .info{flex:1;min-width:0}
+.player .row1{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink2)}
+.player .row1 b{color:var(--ink);font-weight:500}
+.track{margin-top:8px;height:3px;background:var(--rule);position:relative}
+.track i{display:block;height:100%;width:0%;background:var(--ac);transition:width .12s linear}
+.player .status{font-family:var(--mono);font-size:11px;color:var(--ink3);min-width:9ch;text-align:right}
+.voicebar{margin-top:12px;padding-top:12px;border-top:1px solid var(--rule);display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--ink3)}
+.voicebar select{border:1px solid var(--rule);background:var(--panel2);padding:6px 8px;font-size:12px;color:var(--ink);max-width:230px}
+.voicebar .hint{color:var(--ink3);font-size:11px}
+
+/* chapters */
+.chapters{margin-top:36px;padding-bottom:8px;border-bottom:1px solid var(--rule);display:flex;gap:6px;flex-wrap:wrap}
+.chapters button{
+  border:1px solid var(--rule);font-family:var(--mono);font-size:11px;
+  color:var(--ink3);width:28px;height:28px;flex:none;
+}
+.chapters button:hover{border-color:var(--ink3);color:var(--ink)}
+.chapters button[aria-current="true"]{border-color:var(--ac);color:var(--ac);background:var(--panel2)}
+
+.chapter{margin-top:36px;min-height:220px}
+.chapter .num{font-family:var(--mono);font-size:12px;color:var(--ac2);margin-bottom:10px}
+.chapter h2{font-size:clamp(21px,2.5vw,28px);font-weight:600;line-height:1.25;max-width:24ch;letter-spacing:-.01em}
+.chapter p{margin-top:16px;font-size:16px;line-height:1.7;color:var(--ink2);max-width:64ch}
+.chapter .interaction{margin-top:14px;font-size:12.5px;color:var(--ink3);border-left:2px solid var(--ac);padding-left:10px}
+.chapter .figure{
+  margin-top:22px;border:1px solid var(--rule);background:var(--panel);padding:16px 18px;overflow-x:auto;
+}
+.chapter .figure pre{
+  font-family:var(--mono);font-size:12px;line-height:1.55;color:var(--ink2);white-space:pre;
+}
+.chapter .figure pre .hl{color:var(--ac2)}
+.detail{margin-top:18px;border:1px solid var(--rule);background:var(--panel2);padding:14px 16px}
+.detail .dt{font-family:var(--mono);font-size:11px;color:var(--ac2);margin-bottom:8px}
+.detail dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13px;color:var(--ink2)}
+.detail dl dt{color:var(--ink3)}
+.detail ul{padding-left:18px;font-size:13.5px;color:var(--ink2);line-height:1.7}
+.detail .status-tag{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--ac2);border:1px solid var(--ac);padding:2px 8px;margin-bottom:8px}
+
+.nav{margin-top:32px;display:flex;justify-content:space-between;gap:12px}
+.nav button{
+  border:1px solid var(--rule);background:var(--panel);padding:10px 16px;font-size:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.nav button:hover:not(:disabled){border-color:var(--ac)}
+.nav button:disabled{opacity:.35;cursor:default}
+.nav .next{margin-left:auto}
+
+footer{border-top:1px solid var(--rule);padding:18px clamp(20px,4vw,56px);padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))}
+footer p{font-size:12px;color:var(--ink3);line-height:1.5;max-width:70ch;margin-bottom:6px}
+
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#f6f6f8;--panel:#fff;--panel2:#eef0f4;--ink:#101116;--ink2:#4b4f5c;--ink3:#83899a;
+    --rule:rgba(0,0,0,.1);
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="tag">Concept</span>
+  <span class="meta">Enterprise AI &middot; from scattered knowledge to trusted context</span>
+  <span class="sep"></span>
+  <span class="meta" id="chapCount">Scene 1 of 12</span>
+</div>
+
+<main>
+  <div class="kicker">Context Studio</div>
+  <h1>The answer exists. It's just not in one place.</h1>
+  <p class="lede">A manufacturer needs to know which suppliers could put next month's production at risk. The knowledge already exists &mdash; scattered across contracts, audits, spreadsheets and policy. Follow it as it becomes a governed context an agent can actually trust.</p>
+  <div class="persona">Persona: Maya Rao, AI Solution Consultant &middot; Scenario: supplier risk for a global manufacturer</div>
+
+  <div class="player" role="group" aria-label="Scene narration">
+    <div class="row">
+      <button id="playBtn" class="play" aria-label="Play this scene's narration">
+        <svg id="playIcon" width="12" height="14" viewBox="0 0 12 14" aria-hidden="true"><path d="M0 0l12 7-12 7z" fill="currentColor"></path></svg>
+      </button>
+      <div class="info">
+        <div class="row1"><b id="playLabel">Play scene</b><span id="voiceNote"></span></div>
+        <div class="track"><i id="fill"></i></div>
+      </div>
+      <span class="status" id="status">00:00</span>
+    </div>
+    <div class="voicebar">
+      <span>Narrator voice</span>
+      <select id="voiceSelect" aria-label="Choose a narration voice"></select>
+      <span class="hint" id="voiceHint"></span>
+    </div>
+    <div id="voiceWarn" style="display:none;margin-top:10px;padding:10px 12px;border:1px solid #d9534f;background:rgba(217,83,79,.08);font-size:12px;color:#f2a8a5;line-height:1.5"></div>
+  </div>
+
+  <div class="chapters" id="chapterChips" role="tablist" aria-label="Jump to scene"></div>
+
+  <div class="chapter">
+    <div class="num" id="chapNum">Scene 01</div>
+    <h2 id="chapTitle"></h2>
+    <p id="chapBody"></p>
+    <div class="interaction" id="chapInteraction" style="display:none"></div>
+    <div class="figure" id="chapFigure" style="display:none"><pre id="chapFigurePre"></pre></div>
+    <div class="detail" id="chapDetail" style="display:none"></div>
+  </div>
+
+  <div class="nav">
+    <button id="prevBtn">&larr; Previous</button>
+    <button id="nextBtn" class="next">Next &rarr;</button>
+  </div>
+</main>
+
+<footer>
+  <p>Concept experience for Context Studio, produced by IBM Consulting's Real-Time Data team, powered by Confluent. This is an internal concept, not an official IBM communication, and has not been reviewed for external use.</p>
+  <p>Narration is synthesized on-device using your browser's speech engine, paced sentence by sentence with small natural variation, rather than studio-recorded audio. For the most human-sounding result, pick a voice labeled "Natural," "Enhanced," "Premium," or "Neural" in the voice menu, if your device offers one. A production build should replace this with recorded voice-over.</p>
+</footer>
+
+<script>
+const CH = [
+{
+  eyebrow:"Scene 01", id:"question",
+  title:"The answer exists. Just not in one place.",
+  body:"A procurement team is preparing for next month's production. They need to know which suppliers could put critical components at risk. The answer exists somewhere across contracts, audit reports, supplier records, plant data, and policy documents. But no single document can answer the question.",
+  interaction:"Hovering each source reveals only one fragment of the answer.",
+  figure:
+`                  Which suppliers put production at risk?
+                                  │
+       ┌────────────┬─────────────┼──────────────┬──────────────┐
+       │            │             │              │              │
+   Contracts      Audits      Supplier CSV    Plant data      Policy
+       │            │             │              │              │
+   renewal date   findings     supplier ID     components    risk rules
+
+                         <hl>fragmented knowledge</hl>`
+},
+{
+  eyebrow:"Scene 02", id:"retrieval",
+  title:"Finding information is different from understanding it.",
+  body:"Search can find relevant passages. But the decision depends on relationships. Is Atlas Components the supplier named in this contract? Does it supply a critical component? Which plant depends on that component? Are the audit findings still open? And what does company policy define as high risk.",
+  pauseAfter:"But the decision depends on relationships.",
+  figure:
+`Retrieved text                         Missing understanding
+
+"Renews 30 September"      ─ ─ ? ─ ─► Atlas Components
+"2 open findings"          ─ ─ ? ─ ─► Supplier risk
+"VA-17"                    ─ ─ ? ─ ─► Pune Plant`
+},
+{
+  eyebrow:"Scene 03", id:"intent",
+  title:"Start with what the business needs to know.",
+  body:"Maya does not begin by configuring a database or choosing an embedding model. She begins with intent. Context Studio asks only what it needs to understand the purpose, the questions the context must answer, the important business entities, and the boundaries of the problem.",
+  figure:
+`Business intent
+      │
+      ▼
+┌───────────────────────┐
+│     <hl>CONTEXT BRIEF</hl>     │
+│ Purpose               │
+│ Questions              │
+│ Entities               │
+│ Sources                │
+│ Scope                  │
+│ Freshness               │
+└───────────┬───────────┘
+            ▼
+     shared definition
+     of useful context`,
+  detail:`<div class="dt">Context Brief</div><dl>
+  <dt>Purpose</dt><dd>Identify supplier risks that could disrupt production</dd>
+  <dt>Key questions</dt><dd>Critical-component suppliers &middot; contracts nearing renewal &middot; open audit findings &middot; exposed plants</dd>
+  <dt>Core entities</dt><dd>Supplier &middot; Contract &middot; Component &middot; Plant &middot; Audit Finding</dd>
+  <dt>Sources</dt><dd>Contracts &middot; supplier master &middot; audit reports &middot; plant/component data &middot; procurement policy</dd>
+  <dt>Scope</dt><dd>Tier-1 production suppliers &middot; indirect procurement out of scope</dd>
+  <dt>Freshness</dt><dd>Weekly &middot; high criticality</dd>
+</dl>`
+},
+{
+  eyebrow:"Scene 04", id:"structure",
+  title:"AI proposes the structure. The human decides.",
+  body:"From that intent, Context Studio proposes a structure for the knowledge. Maya can use the AI-created model, select or compose from the library, build one herself, generate from documents, or continue without a schema. AI accelerates the work. The human still decides what the knowledge means.",
+  interaction:"Maya accepts the proposal, but renames \u201cSite\u201d to \u201cPlant\u201d to match client terminology.",
+  figure:
+`                       ┌────────────┐
+                       │  <hl>Supplier</hl>  │
+                       └──┬────┬────┘
+                  supplies│    │has contract
+                          ▼    ▼
+                    ┌─────────┐   ┌──────────┐
+                    │Component│   │ Contract │
+                    └────┬────┘   └────┬─────┘
+                         │ used by      │ governed by
+                         ▼              ▼
+                    ┌─────────┐    ┌────────┐
+                    │  Plant  │    │ Policy │
+                    └─────────┘    └────────┘
+
+                 Supplier ──has finding──► Audit Finding`
+},
+{
+  eyebrow:"Scene 05", id:"evidence",
+  title:"Now the documents have somewhere to belong.",
+  body:"Maya adds the source material. Context Studio now has something ordinary retrieval did not: a shared structure against which every source can be interpreted. Facts are connected to the business model, while provenance stays attached to the evidence they came from.",
+  figure:
+`SOURCE                           CONTEXT
+
+Contract_Atlas.pdf ───────────► Contract C-1048
+                                      │
+                                  belongs to
+                                      ▼
+                               <hl>Atlas Components</hl>
+                                      │
+                    ┌─────────────────┴─────────────────┐
+                    ▼                                   ▼
+            VA-17 Valve Assembly                  QF-221 / Open
+                    │
+                 used by
+                    ▼
+             Pune Assembly Plant`
+},
+{
+  eyebrow:"Scene 06", id:"reconcile",
+  title:"The hard part is not ingestion. It is reconciliation.",
+  body:"This is where context becomes trustworthy. The system detects a likely duplicate supplier, a conflicting contract date, and a gap in the knowledge needed to answer a critical question. Instead of silently resolving uncertainty, it brings those decisions to Maya.",
+  interaction:"Maya resolves the duplicate and selects the authoritative date. The graph updates immediately.",
+  figure:
+` Duplicate                    Conflict                     Gap
+    │                            │                          │
+    ▼                            ▼                          ▼
+Atlas Components Ltd.      30 Sep ─┐                VA-17 ──► ?
+Atlas Components Pvt Ltd   31 Dec ─┘                backup supplier
+    │                            │                          │
+   94%                      human review              missing evidence
+    └───────────────────────┬──────────────────────────┘
+                            ▼
+                     <hl>trusted context</hl>`
+},
+{
+  eyebrow:"Scene 07", id:"business-view",
+  title:"The documents become operational knowledge.",
+  body:"The result is not another document repository. It is a connected business view. Context Studio can trace why a supplier matters, what evidence supports that conclusion, and where uncertainty remains.",
+  figure:
+`[Pune Plant]
+     │
+   uses
+     ▼
+[VA-17] ◄── supplies ── [<hl>Atlas Components</hl>]
+                           │          │
+                    has contract   has finding
+                           ▼          ▼
+                       [C-1048]    [QF-221]
+                           │
+                    renewal in 18d`,
+  detail:`<div class="dt">Why this matters</div><ul>
+    <li>VA-17 is production critical</li>
+    <li>Atlas is the only approved supplier</li>
+    <li>2 quality findings remain open</li>
+    <li>Contract renewal is due in 18 days</li>
+  </ul>`
+},
+{
+  eyebrow:"Scene 08", id:"publish",
+  title:"Trusted context is useful only when access is intentional.",
+  body:"Maya can explore the context, but an operational agent gets a deliberately defined surface. She creates a repeatable query for production supplier risk, reviews exactly what it can return, and publishes that query for the agent. The agent does not receive unrestricted access to everything in the context.",
+  figure:
+`┌──────────────────────── CONTEXT ────────────────────────┐
+│ Supplier → Component → Plant                           │
+│    ├── Contract                                        │
+│    └── Audit Finding                                   │
+│                                                        │
+│       [<hl>Published query: Production supplier risk</hl>]      │
+└───────────────────────────┬────────────────────────────┘
+                            │ controlled grant
+                            ▼
+                     ┌─────────────┐
+                     │ Procurement │
+                     │    Agent    │
+                     └─────────────┘`
+},
+{
+  eyebrow:"Scene 09", id:"answer",
+  title:"Now the agent can answer — and show why.",
+  body:"Ask the original question again and the difference is visible. The agent identifies Atlas Components, explains the chain of relationships that makes it relevant, and cites the evidence behind every important claim. The answer is not trustworthy because the model sounds confident. It is trustworthy because the context is inspectable.",
+  figure:
+`QUESTION
+   │
+   ▼
+Published query
+   │
+   ▼
+Trusted Context
+   ├── relationship path
+   ├── governed scope
+   ├── provenance
+   └── reviewed conflicts
+   │
+   ▼
+<hl>ANSWER + WHY + EVIDENCE</hl>`,
+  detail:`<div class="dt">Agent response</div><span class="status-tag">Requires attention</span><br><b>Atlas Components</b><ul>
+    <li>Sole approved supplier for critical component VA-17</li>
+    <li>VA-17 is used by Pune Assembly Plant</li>
+    <li>2 unresolved quality findings</li>
+    <li>Contract renewal due in 18 days</li>
+  </ul><dl style="margin-top:10px"><dt>Evidence</dt><dd>Contract_Atlas.pdf &middot; p12 &nbsp;&middot;&nbsp; Q3 Supplier Audits.pdf &middot; p47 &nbsp;&middot;&nbsp; Plant Components.xlsx &middot; row 218 &nbsp;&middot;&nbsp; Procurement Policy.pdf &middot; p8</dd></dl>`
+},
+{
+  eyebrow:"Scene 10", id:"versioning",
+  title:"Context is a living product, not a one-time ingestion job.",
+  body:"Enterprise knowledge does not stand still. New evidence changes the context, and every committed change creates a traceable version. The agent is not silently moved to a different knowledge state. Maya can review what changed, certify it, and then update the agent deliberately.",
+  figure:
+`v13                              v14
+Atlas ──► QF-221 OPEN            Atlas ──► QF-221 <hl>CLOSED</hl>
+  │                                │
+  ▼                                ▼
+Agent uses v13          review → certify → update`
+},
+{
+  eyebrow:"Scene 11", id:"transformation",
+  title:"From information to context. From context to action.",
+  body:"Context Studio changes the unit of work. Instead of giving an agent a folder of information and hoping retrieval finds the right passage, teams create a governed knowledge context: shaped by business intent, grounded in evidence, connected through relationships, reviewed where uncertainty matters, and exposed to agents deliberately.",
+  figure:
+`SCATTERED INFORMATION
+        │
+        ▼
+┌─────────────────────────────────────────────────────────────┐
+│                       <hl>CONTEXT STUDIO</hl>                        │
+│                                                             │
+│  Intent → Structure → Sources → Reconcile → Validate        │
+│                          │                                  │
+│                          ▼                                  │
+│                 CONNECTED KNOWLEDGE                         │
+│              provenance · versions · trust                 │
+└──────────────────────────┬──────────────────────────────────┘
+                           │ governed access
+                           ▼
+              ┌────────────┼────────────┐
+              ▼            ▼            ▼
+         Procurement    Risk Agent   Operations Agent
+            Agent`
+},
+{
+  eyebrow:"Closing", id:"closing",
+  title:"Agents are only as useful as the context they can trust.",
+  body:"Better agents do not begin with more prompts. They begin with better context.",
+  detail:`<div class="dt">Context Studio</div>Build the knowledge surface your agents can reason over.`
+}
+];
+
+/* ---------- state ---------- */
+let idx = 0;
+let sentences = [];
+let sIndex = 0;
+let charTotal = 0;
+let charDone = 0;
+let playing = false;
+let paused = false;
+let timer = null;
+let elapsedStart = 0;
+let elapsedAccum = 0;
+let currentUtter = null;
+
+const els = {
+  chips: document.getElementById('chapterChips'),
+  num: document.getElementById('chapNum'),
+  title: document.getElementById('chapTitle'),
+  body: document.getElementById('chapBody'),
+  interaction: document.getElementById('chapInteraction'),
+  fig: document.getElementById('chapFigure'),
+  figPre: document.getElementById('chapFigurePre'),
+  detail: document.getElementById('chapDetail'),
+  count: document.getElementById('chapCount'),
+  prev: document.getElementById('prevBtn'),
+  next: document.getElementById('nextBtn'),
+  playBtn: document.getElementById('playBtn'),
+  playIcon: document.getElementById('playIcon'),
+  playLabel: document.getElementById('playLabel'),
+  fill: document.getElementById('fill'),
+  status: document.getElementById('status'),
+  voiceNote: document.getElementById('voiceNote'),
+  voiceSelect: document.getElementById('voiceSelect'),
+  voiceHint: document.getElementById('voiceHint'),
+  voiceWarn: document.getElementById('voiceWarn'),
+};
+
+function showWarn(msg){
+  els.voiceWarn.style.display = 'block';
+  els.voiceWarn.textContent = msg;
+}
+function clearWarn(){
+  els.voiceWarn.style.display = 'none';
+  els.voiceWarn.textContent = '';
+}
+
+const PLAY = 'M0 0l12 7-12 7z';
+const PAUSE = 'M0 0h4v14H0zM8 0h4v14H8z';
+
+/* ---------- voices ---------- */
+let voices = [];
+function scoreVoice(v){
+  const n = v.name.toLowerCase();
+  let s = 0;
+  if(v.lang && v.lang.toLowerCase().startsWith('en')) s += 5;
+  if(/natural|neural|premium|enhanced/.test(n)) s += 6;
+  if(/google/.test(n)) s += 3;
+  if(/samantha|ava|daniel|serena|aaron|nicky|moira|tessa/.test(n)) s += 2;
+  if(v.localService === false) s += 1;
+  return s;
+}
+function populateVoices(){
+  voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  if(!voices.length) return;
+  const sorted = [...voices].sort((a,b)=> scoreVoice(b)-scoreVoice(a));
+  els.voiceSelect.innerHTML = sorted.map((v,i)=>
+    `<option value="${voices.indexOf(v)}">${v.name} (${v.lang})</option>`
+  ).join('');
+  els.voiceSelect.value = voices.indexOf(sorted[0]);
+  els.voiceHint.textContent = /natural|neural|premium|enhanced/i.test(sorted[0].name)
+    ? 'Using a natural-sounding voice found on this device.'
+    : 'Pick a "Natural / Neural / Enhanced" voice above if your device offers one.';
+}
+if('speechSynthesis' in window){
+  populateVoices();
+  window.speechSynthesis.onvoiceschanged = populateVoices;
+  // Some browsers (notably Chrome opened from a local file://) never fire
+  // voiceschanged and getVoices() keeps returning []. Poll a few times as a
+  // fallback, then tell the user plainly instead of failing silently.
+  let voiceTries = 0;
+  const voicePoll = setInterval(()=>{
+    voiceTries++;
+    if(voices.length){ clearInterval(voicePoll); clearWarn(); return; }
+    populateVoices();
+    if(voices.length){ clearInterval(voicePoll); clearWarn(); return; }
+    if(voiceTries >= 16){
+      clearInterval(voicePoll);
+      showWarn('No narration voices were found by this browser. If you opened this file by double-clicking it, try serving it from a local server (e.g. "python3 -m http.server" then open via http://localhost) instead of file://, try a different browser, or check that your OS has a speech voice installed.');
+    }
+  }, 300);
+} else {
+  els.voiceHint.textContent = 'Speech synthesis is not available in this browser.';
+  els.playBtn.disabled = true;
+  showWarn('This browser does not support speech synthesis at all. Try Chrome, Edge, Firefox, or Safari.');
+}
+
+/* ---------- rendering ---------- */
+function renderChips(){
+  els.chips.innerHTML = CH.map((c,i)=>`<button role="tab" aria-selected="${i===idx}" aria-current="${i===idx}" data-i="${i}" title="${c.title}">${String(i+1).padStart(2,'0')}</button>`).join('');
+  els.chips.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>goTo(parseInt(btn.dataset.i,10)));
+  });
+}
+
+function renderChapter(){
+  const c = CH[idx];
+  els.num.textContent = c.eyebrow;
+  els.title.textContent = c.title;
+  els.body.textContent = c.body;
+
+  if(c.interaction){ els.interaction.style.display='block'; els.interaction.textContent = 'Interaction: ' + c.interaction; }
+  else { els.interaction.style.display='none'; }
+
+  if(c.figure){
+    els.fig.style.display='block';
+    els.figPre.innerHTML = c.figure.replace(/</g,'\u0001').replace(/\u0001hl\u0001/g,'<span class="hl">').replace(/\u0001\/hl\u0001/g,'</span>');
+  } else { els.fig.style.display='none'; els.figPre.innerHTML=''; }
+
+  if(c.detail){ els.detail.style.display='block'; els.detail.innerHTML = c.detail; }
+  else { els.detail.style.display='none'; els.detail.innerHTML=''; }
+
+  els.count.textContent = 'Scene ' + (idx+1) + ' of ' + CH.length;
+  els.prev.disabled = idx===0;
+  els.next.textContent = idx===CH.length-1 ? 'Back to start ↺' : 'Next →';
+  [...els.chips.children].forEach((b,i)=>{ b.setAttribute('aria-current', i===idx); b.setAttribute('aria-selected', i===idx); });
+  resetPlayer();
+}
+
+/* figure markup: replace literal <hl> markers safely */
+function fixFigureMarkup(raw){
+  return raw.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/&lt;hl&gt;/g,'<span class="hl">').replace(/&lt;\/hl&gt;/g,'</span>');
+}
+
+/* re-render figure properly (override above quick hack) */
+function setFigure(raw){
+  els.figPre.innerHTML = fixFigureMarkup(raw);
+}
+
+/* ---------- player ---------- */
+function resetPlayer(){
+  stopSpeech();
+  els.fill.style.width='0%';
+  els.status.textContent='00:00';
+  elapsedAccum = 0;
+  setPlayingUI(false);
+  els.playLabel.textContent = 'Play scene';
+}
+
+function setPlayingUI(isPlaying){
+  playing = isPlaying;
+  els.playIcon.setAttribute('d', isPlaying ? PAUSE : PLAY);
+  els.playBtn.setAttribute('aria-label', isPlaying ? 'Pause the narration' : 'Play this scene\'s narration');
+}
+
+function stopSpeech(){
+  if(timer){ clearInterval(timer); timer=null; }
+  if('speechSynthesis' in window){ window.speechSynthesis.cancel(); }
+  currentUtter = null;
+  sentences = []; sIndex = 0; charTotal = 0; charDone = 0;
+  paused = false;
+}
+
+function splitSentences(text){
+  return text.match(/[^.!?]+[.!?]*/g).map(s=>s.trim()).filter(Boolean);
+}
+
+function startTimer(){
+  elapsedStart = Date.now() - elapsedAccum;
+  timer = setInterval(()=>{
+    const ms = Date.now()-elapsedStart;
+    const secs = Math.floor(ms/1000);
+    els.status.textContent = String(Math.floor(secs/60)).padStart(2,'0')+':'+String(secs%60).padStart(2,'0');
+  }, 200);
+}
+function pauseTimer(){
+  if(timer){ clearInterval(timer); timer=null; }
+  elapsedAccum = Date.now()-elapsedStart;
+}
+
+function pickVoice(){
+  if(!voices.length) return null;
+  const val = els.voiceSelect.value;
+  return voices[parseInt(val,10)] || voices[0];
+}
+
+function speakChapter(){
+  if(!('speechSynthesis' in window)){
+    showWarn('Speech synthesis is not available in this browser.');
+    return;
+  }
+  if(!voices.length){
+    showWarn('No narration voices are available yet, so there is nothing to play. See the note above for how to fix this.');
+    return;
+  }
+  clearWarn();
+  const c = CH[idx];
+  sentences = splitSentences(c.body);
+  charTotal = sentences.reduce((a,s)=>a+s.length,0) || 1;
+  charDone = 0; sIndex = 0;
+  window.speechSynthesis.cancel();
+  setPlayingUI(true);
+  els.playLabel.textContent = 'Playing…';
+  startTimer();
+  speakNext(c);
+}
+
+function speakNext(c){
+  if(paused) return;
+  if(sIndex >= sentences.length){
+    els.fill.style.width='100%';
+    pauseTimer();
+    setPlayingUI(false);
+    els.playLabel.textContent = 'Play scene';
+    return;
+  }
+  const sentence = sentences[sIndex];
+  const u = new SpeechSynthesisUtterance(sentence);
+  const v = pickVoice();
+  if(v) u.voice = v;
+  // small natural variation so it doesn't sound metronomic
+  u.rate = 0.94 + (Math.random()*0.06 - 0.03);
+  u.pitch = 1.02 + (Math.random()*0.08 - 0.04);
+  u.onboundary = (e)=>{
+    if(e.name === 'word' || e.charIndex !== undefined){
+      const pct = Math.min(100, ((charDone + e.charIndex) / charTotal) * 100);
+      els.fill.style.width = pct + '%';
+    }
+  };
+  u.onend = ()=>{
+    charDone += sentence.length;
+    els.fill.style.width = Math.min(100, (charDone/charTotal)*100) + '%';
+    sIndex++;
+    currentUtter = null;
+    if(paused) return;
+    const extraPause = (c.pauseAfter && sentence.indexOf(c.pauseAfter.replace(/\.$/,'')) !== -1) ? 650 : 180;
+    setTimeout(()=> speakNext(c), extraPause);
+  };
+  u.onerror = (e)=>{
+    sIndex++;
+    if(e && e.error){
+      showWarn('Narration error from the browser: "' + e.error + '". Try a different voice from the menu above, or a different browser.');
+    }
+    if(!paused) setTimeout(()=> speakNext(c), 100);
+  };
+  currentUtter = u;
+  try{
+    window.speechSynthesis.speak(u);
+  }catch(err){
+    showWarn('Could not start narration: ' + err.message);
+    setPlayingUI(false);
+  }
+}
+
+els.playBtn.addEventListener('click', ()=>{
+  if(!('speechSynthesis' in window)) return;
+  if(playing){
+    paused = true;
+    window.speechSynthesis.pause();
+    pauseTimer();
+    setPlayingUI(false);
+    els.playLabel.textContent = 'Paused — tap to resume';
+  } else if(paused && currentUtter){
+    paused = false;
+    window.speechSynthesis.resume();
+    startTimer();
+    setPlayingUI(true);
+    els.playLabel.textContent = 'Playing…';
+  } else if(sentences.length && sIndex < sentences.length){
+    paused = false;
+    startTimer();
+    setPlayingUI(true);
+    els.playLabel.textContent = 'Playing…';
+    speakNext(CH[idx]);
+  } else {
+    speakChapter();
+  }
+});
+
+function goTo(i){
+  idx = Math.max(0, Math.min(CH.length-1, i));
+  renderChapter();
+  const c = CH[idx];
+  if(c.figure) setFigure(c.figure);
+}
+
+els.prev.addEventListener('click', ()=> goTo(idx-1));
+els.next.addEventListener('click', ()=> goTo(idx===CH.length-1 ? 0 : idx+1));
+
+renderChips();
+renderChapter();
+if(CH[idx].figure) setFigure(CH[idx].figure);
+</script>
+</body>
+</html>
